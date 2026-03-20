@@ -28,8 +28,6 @@ const config = {
   devtool: false,
   entry: {
     main: [
-      "core-js",
-      "regenerator-runtime/runtime",
       "jquery-binarytransport",
       path.resolve(SRC_PATH, "./index.css"),
       path.resolve(SRC_PATH, "./buildinfo.ts"),
@@ -129,11 +127,14 @@ const config = {
   },
   optimization: {
     minimize: true,
-    splitChunks: false,
-    concatenateModules: false,
-    usedExports: false,
-    providedExports: false,
-    sideEffects: false,
+    splitChunks: {
+      chunks: "all",
+      maxSize: 244000,
+    },
+    concatenateModules: true,
+    usedExports: true,
+    providedExports: true,
+    sideEffects: true,
   },
   cache: false,
   ignoreWarnings: [
