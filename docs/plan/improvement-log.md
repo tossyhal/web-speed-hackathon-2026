@@ -10,3 +10,7 @@
 | 8 | T08: FFmpeg/ImageMagick の読み込みを遅延化（動的 import） | 未計測 | 未計測 | 未計測 | PENDING | ビルド未実行（ユーザー指示） |
 | 9 | T09: `moment` を `Intl` ベース実装へ置換 | 未計測 | 未計測 | 未計測 | PENDING | ビルド未実行（ユーザー指示） |
 | 10 | T10: `lodash` 利用箇所をネイティブ JS に置換 | 未計測 | 未計測 | 未計測 | PENDING | ビルド未実行（ユーザー指示） |
+| 11 | P1-01: `asset/bytes` -> `asset/resource` へ変更（WASM分離） | 未計測 | 未計測 | 未計測 | PENDING | ビルド未実行（ユーザー指示） |
+| 12 | P1-02: Babel `modules:false` + React preset `development:false` | 未計測 | 未計測 | 未計測 | PENDING | ビルド未実行（ユーザー指示） |
+| 13 | P1-03: `NewPostModalContainer` の lazy load 化 | 未計測 | 未計測 | 未計測 | PENDING | ビルド未実行（ユーザー指示） |
+| 14 | P1-04: `CoveredImage` の `image-size/piexifjs` 動的 import 化 | 未計測 | 未計測 | 未計測 | PENDING | ビルド未実行（ユーザー指示） |
