@@ -1,12 +1,15 @@
-import { initializeImageMagick, ImageMagick, MagickFormat } from "@imagemagick/magick-wasm";
-import magickWasm from "@imagemagick/magick-wasm/magick.wasm?binary";
 import { dump, insert, ImageIFD } from "piexifjs";
 
 interface Options {
-  extension: MagickFormat;
+  extension: "JPG" | "WEBP";
 }
 
 export async function convertImage(file: File, options: Options): Promise<Blob> {
+  const [{ initializeImageMagick, ImageMagick }, { default: magickWasm }] = await Promise.all([
+    import("@imagemagick/magick-wasm"),
+    import("@imagemagick/magick-wasm/magick.wasm?binary"),
+  ]);
+
   await initializeImageMagick(magickWasm);
 
   const byteArray = new Uint8Array(await file.arrayBuffer());
@@ -18,7 +21,7 @@ export async function convertImage(file: File, options: Options): Promise<Blob> 
       const comment = img.comment;
 
       img.write((output) => {
-        if (comment == null) {
+        if (comment == null || options.extension !== "JPG") {
           resolve(new Blob([output as Uint8Array<ArrayBuffer>]));
           return;
         }
