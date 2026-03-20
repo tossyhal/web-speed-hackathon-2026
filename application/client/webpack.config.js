@@ -28,7 +28,6 @@ const config = {
   devtool: false,
   entry: {
     main: [
-      "jquery-binarytransport",
       path.resolve(SRC_PATH, "./index.css"),
       path.resolve(SRC_PATH, "./buildinfo.ts"),
       path.resolve(SRC_PATH, "./index.tsx"),
@@ -58,7 +57,7 @@ const config = {
   },
   output: {
     chunkFilename: "scripts/chunk-[contenthash].js",
-    chunkFormat: false,
+    chunkFormat: "array-push",
     filename: "scripts/[name].js",
     path: DIST_PATH,
     publicPath: "auto",
@@ -66,10 +65,8 @@ const config = {
   },
   plugins: [
     new webpack.ProvidePlugin({
-      $: "jquery",
       AudioContext: ["standardized-audio-context", "AudioContext"],
       Buffer: ["buffer", "Buffer"],
-      "window.jQuery": "jquery",
     }),
     new webpack.EnvironmentPlugin({
       BUILD_DATE: new Date().toISOString(),
@@ -129,7 +126,6 @@ const config = {
     minimize: true,
     splitChunks: {
       chunks: "all",
-      maxSize: 244000,
     },
     concatenateModules: true,
     usedExports: true,
