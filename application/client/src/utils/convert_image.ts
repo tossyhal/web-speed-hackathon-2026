@@ -2,13 +2,18 @@ interface Options {
   extension: "jpg" | "webp";
 }
 
-export async function convertImage(file: File, options: Options): Promise<Blob> {
+interface ConvertImageResult {
+  alt: string;
+  blob: Blob;
+}
+
+export async function convertImage(file: File, options: Options): Promise<ConvertImageResult> {
   const [{ initializeImageMagick, ImageMagick, MagickFormat }, wasmUrl] = await Promise.all([
     import("@imagemagick/magick-wasm"),
     import("@imagemagick/magick-wasm/magick.wasm?binary").then((mod) => mod.default),
   ]);
 
-  const wasmBytes = await fetch(wasmUrl).then(async (response) => {
+  const wasmBytes = await fetch(wasmUrl as unknown as string).then(async (response) => {
     return await response.arrayBuffer();
   });
   await initializeImageMagick(new Uint8Array(wasmBytes));
@@ -19,11 +24,14 @@ export async function convertImage(file: File, options: Options): Promise<Blob> 
     ImageMagick.read(byteArray, (img) => {
       img.format = options.extension === "webp" ? MagickFormat.WebP : MagickFormat.Jpg;
 
-      const comment = img.comment;
+      const comment = img.comment?.trim() ?? "";
 
       img.write((output) => {
-        if (comment == null || options.extension !== "jpg") {
-          resolve(new Blob([output as Uint8Array<ArrayBuffer>]));
+        if (comment === "" || options.extension !== "jpg") {
+          resolve({
+            alt: comment,
+            blob: new Blob([output as Uint8Array<ArrayBuffer>]),
+          });
           return;
         }
 
@@ -42,11 +50,17 @@ export async function convertImage(file: File, options: Options): Promise<Blob> 
           const exifStr = dump({ "0th": { [ImageIFD.ImageDescription]: descriptionBinary } });
           const outputWithExif = insert(exifStr, binary);
           const bytes = Uint8Array.from(outputWithExif.split("").map((c) => c.charCodeAt(0)));
-          resolve(new Blob([bytes]));
+          resolve({
+            alt: comment,
+            blob: new Blob([bytes]),
+          });
         };
 
         void saveWithExif().catch(() => {
-          resolve(new Blob([output as Uint8Array<ArrayBuffer>]));
+          resolve({
+            alt: comment,
+            blob: new Blob([output as Uint8Array<ArrayBuffer>]),
+          });
         });
       });
     });

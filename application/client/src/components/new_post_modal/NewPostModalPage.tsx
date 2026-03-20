@@ -10,8 +10,13 @@ import { convertSound } from "@web-speed-hackathon-2026/client/src/utils/convert
 
 const MAX_UPLOAD_BYTES_LIMIT = 10 * 1024 * 1024;
 
-interface SubmitParams {
-  images: File[];
+interface ImageUpload {
+  alt: string;
+  file: File;
+}
+
+export interface SubmitParams {
+  images: ImageUpload[];
   movie: File | undefined;
   sound: File | undefined;
   text: string;
@@ -54,22 +59,26 @@ export const NewPostModalPage = ({ id, hasError, isLoading, onResetError, onSubm
 
       Promise.all(
         files.map((file) =>
-          convertImage(file, { extension: "webp" }).then(
-            (blob) => new File([blob], "converted.webp", { type: "image/webp" }),
-          ),
+          convertImage(file, { extension: "webp" }).then(({ alt, blob }) => ({
+            alt,
+            file: new File([blob], "converted.webp", { type: "image/webp" }),
+          })),
         ),
       )
-        .then((convertedFiles) => {
+        .then((convertedImages) => {
           setParams((params) => ({
             ...params,
-            images: convertedFiles,
+            images: convertedImages,
             movie: undefined,
             sound: undefined,
           }));
 
           setIsConverting(false);
         })
-        .catch(console.error);
+        .catch((error) => {
+          console.error(error);
+          setIsConverting(false);
+        });
     }
   }, []);
 
@@ -89,6 +98,9 @@ export const NewPostModalPage = ({ id, hasError, isLoading, onResetError, onSubm
           sound: new File([converted], "converted.mp3", { type: "audio/mpeg" }),
         }));
 
+        setIsConverting(false);
+      }).catch((error) => {
+        console.error(error);
         setIsConverting(false);
       });
     }
@@ -115,7 +127,10 @@ export const NewPostModalPage = ({ id, hasError, isLoading, onResetError, onSubm
 
           setIsConverting(false);
         })
-        .catch(console.error);
+        .catch((error) => {
+          console.error(error);
+          setIsConverting(false);
+        });
     }
   }, []);
 
@@ -135,10 +150,12 @@ export const NewPostModalPage = ({ id, hasError, isLoading, onResetError, onSubm
       </h2>
 
       <textarea
+        aria-label="いまなにしてる？"
         className="border-cax-border placeholder-cax-text-subtle focus:outline-cax-brand w-full resize-none rounded-xl border px-3 py-2 focus:outline-2 focus:outline-offset-2"
         rows={4}
         onChange={handleChangeText}
         placeholder="いまなにしてる？"
+        value={params.text}
       />
 
       <div className="text-cax-text flex w-full items-center justify-evenly">

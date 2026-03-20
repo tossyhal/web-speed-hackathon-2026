@@ -12,12 +12,14 @@ export async function buildKuromojiTokenizer(
 ): Promise<Tokenizer<IpadicFeatures>> {
   const kuromoji = await loadKuromojiModule();
   return await new Promise((resolve, reject) => {
-    kuromoji.default.builder({ dicPath }).build((err, tokenizer) => {
+    kuromoji
+      .builder({ dicPath })
+      .build((err: Error | null, tokenizer: Tokenizer<IpadicFeatures> | undefined) => {
       if (err != null || tokenizer == null) {
         reject(err ?? new Error("failed to build tokenizer"));
         return;
       }
       resolve(tokenizer);
-    });
+      });
   });
 }

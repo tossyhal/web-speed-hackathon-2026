@@ -13,6 +13,8 @@ import { analyzeSentiment } from "@web-speed-hackathon-2026/client/src/utils/neg
 
 import { Button } from "../foundation/Button";
 
+const SEARCH_INPUT_LABEL = "検索 (例: キーワード since:2025-01-01 until:2025-12-31)";
+
 interface Props {
   query: string;
   results: Models.Post[];
@@ -22,12 +24,13 @@ const SearchInput = ({ input, meta }: WrappedFieldProps) => (
   <div className="flex flex-1 flex-col">
     <input
       {...input}
+      aria-label={SEARCH_INPUT_LABEL}
       className={`flex-1 rounded border px-4 py-2 focus:outline-none ${
         meta.touched && meta.error
           ? "border-cax-danger focus:border-cax-danger"
           : "border-cax-border focus:border-cax-brand-strong"
       }`}
-      placeholder="検索 (例: キーワード since:2025-01-01 until:2025-12-31)"
+      placeholder={SEARCH_INPUT_LABEL}
       type="text"
     />
     {meta.touched && meta.error && (
