@@ -14,3 +14,6 @@
 | 12 | P1-02: Babel `modules:false` + React preset `development:false` | 未計測 | 未計測 | 未計測 | PENDING | ビルド未実行（ユーザー指示） |
 | 13 | P1-03: `NewPostModalContainer` の lazy load 化 | 未計測 | 未計測 | 未計測 | PENDING | ビルド未実行（ユーザー指示） |
 | 14 | P1-04: `CoveredImage` の `image-size/piexifjs` 動的 import 化 | 未計測 | 未計測 | 未計測 | PENDING | ビルド未実行（ユーザー指示） |
+| 15 | P2-01: `compression` ミドルウェア追加 | 未計測 | 29.85/100 (ホーム) | N/A | ADOPT | ホーム画面限定計測で問題なく完走 |
+| 16 | P2-02: API no-cache 限定 + 静的配信 `etag/lastModified` + fingerprinted asset 長期キャッシュ | 未計測 | 29.85/100 (ホーム) | N/A | ADOPT | ホーム画面限定計測で問題なく完走 |
+| 17 | P2-03: 初期描画を即時実行（`window.load` 待ちなし） | 未計測 | 29.85/100 (ホーム) | N/A | ADOPT | 既適用済みを確認、同一条件で採用 |

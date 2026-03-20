@@ -15,7 +15,6 @@
 cd application && pnpm --filter @web-speed-hackathon-2026/client build && pnpm run start
 
 # 計測（別ターミナル）
-cd scoring-tool && pnpm start --applicationUrl http://localhost:3000
 cd scoring-tool && pnpm start --applicationUrl http://localhost:3000 --targetName "ホーム"
 
 # VRT
@@ -150,7 +149,7 @@ const { load, ImageIFD } = await import("piexifjs");
 ### P1 完了後
 1. ビルド → チャンクサイズ確認
 2. サーバー起動 → scoring-tool で「ホーム」計測 → ベースラインスコア記録
-3. 全ページ計測 → `improvement-log.md` にベースライン記録
+3. ホーム画面のみ計測（`--targetName "ホーム"`）→ `improvement-log.md` にベースライン記録
 4. 以降は 1タスク→計測→判定 サイクル
 
 ---
