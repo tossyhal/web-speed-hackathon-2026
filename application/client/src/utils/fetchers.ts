@@ -1,9 +1,49 @@
+export class HttpError extends Error {
+  responseJSON?: unknown;
+  responseText?: string;
+  status: number;
+  statusText: string;
+
+  constructor(params: {
+    responseJSON?: unknown;
+    responseText?: string;
+    status: number;
+    statusText: string;
+  }) {
+    super(`Request failed: ${params.status} ${params.statusText}`);
+    Object.setPrototypeOf(this, new.target.prototype);
+    this.name = "HttpError";
+    this.responseJSON = params.responseJSON;
+    this.responseText = params.responseText;
+    this.status = params.status;
+    this.statusText = params.statusText;
+  }
+}
+
 async function request(url: string, init?: RequestInit): Promise<Response> {
   const response = await fetch(url, init);
   if (response.ok) {
     return response;
   }
-  throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+
+  const contentType = response.headers.get("Content-Type") ?? "";
+  const responseText = await response.text().catch(() => "");
+  let responseJSON: unknown;
+
+  if (responseText !== "" && contentType.includes("application/json")) {
+    try {
+      responseJSON = JSON.parse(responseText);
+    } catch {
+      responseJSON = undefined;
+    }
+  }
+
+  throw new HttpError({
+    responseJSON,
+    responseText: responseText === "" ? undefined : responseText,
+    status: response.status,
+    statusText: response.statusText,
+  });
 }
 
 export async function fetchBinary(url: string): Promise<ArrayBuffer> {

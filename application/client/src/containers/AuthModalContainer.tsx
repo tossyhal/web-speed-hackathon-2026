@@ -4,7 +4,7 @@ import { SubmissionError } from "redux-form";
 import { AuthFormData } from "@web-speed-hackathon-2026/client/src/auth/types";
 import { AuthModalPage } from "@web-speed-hackathon-2026/client/src/components/auth_modal/AuthModalPage";
 import { Modal } from "@web-speed-hackathon-2026/client/src/components/modal/Modal";
-import { sendJSON } from "@web-speed-hackathon-2026/client/src/utils/fetchers";
+import { HttpError, sendJSON } from "@web-speed-hackathon-2026/client/src/utils/fetchers";
 
 interface Props {
   id: string;
@@ -16,12 +16,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   USERNAME_TAKEN: "ユーザー名が使われています",
 };
 
-interface HttpErrorLike {
-  responseJSON?: unknown;
-}
-
-function getErrorCode(err: HttpErrorLike, type: "signin" | "signup"): string {
-  const responseJSON = err.responseJSON;
+function getErrorCode(err: unknown, type: "signin" | "signup"): string {
+  const responseJSON = err instanceof HttpError ? err.responseJSON : undefined;
   if (
     typeof responseJSON !== "object" ||
     responseJSON === null ||
@@ -72,7 +68,7 @@ export const AuthModalContainer = ({ id, onUpdateActiveUser }: Props) => {
         }
         handleRequestCloseModal();
       } catch (err: unknown) {
-        const error = getErrorCode(err as HttpErrorLike, values.type);
+        const error = getErrorCode(err, values.type);
         throw new SubmissionError({
           _error: error,
         });
