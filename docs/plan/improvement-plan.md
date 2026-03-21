@@ -1,4 +1,4 @@
-# CaX パフォーマンス改善計画 v3
+# CaX パフォーマンス改善計画 v4
 
 ---
 
@@ -18,8 +18,10 @@ cd application && pnpm --filter @web-speed-hackathon-2026/client build && pnpm r
 cd scoring-tool && pnpm start --applicationUrl http://localhost:3000
 cd scoring-tool && pnpm start --applicationUrl http://localhost:3000 --targetName "ホーム"
 
-# VRT
-cd application && pnpm run test
+# VRT (e2eパッケージから実行、並列数を制限)
+cd application && E2E_WORKERS=1 pnpm --filter @web-speed-hackathon-2026/e2e test
+# スクリーンショット取り直し (初回 or 環境変更時)
+cd application && E2E_WORKERS=1 pnpm --filter @web-speed-hackathon-2026/e2e test:update
 ```
 
 ### 計測方針
@@ -42,79 +44,62 @@ cd application && pnpm run test
 
 ---
 
-## 現状スコア (Phase 2 完了後 — 555.95 / 1150)
+## 現状スコア (提出 2026-03-21 — 637.35 / 1150)
 
-### 通常テスト (525.95 / 900)
+### 通常テスト (535.35 / 900)
 
 | ページ | CLS | FCP | LCP | SI | TBT | 合計 |
 |--------|-----|-----|-----|-----|-----|------|
-| ホーム | 19.50 | 7.90 | **0.00** | **0.00** | **0.00** | **27.40** |
-| 投稿詳細 | 25.00 | 8.90 | 7.00 | 6.20 | 29.70 | 76.80 |
-| 写真つき投稿詳細 | 24.75 | 8.90 | 0.25 | **0.00** | 29.10 | 63.00 |
-| 動画つき投稿詳細 | 23.50 | 8.70 | 9.25 | 0.60 | 23.70 | 65.75 |
-| 音声つき投稿詳細 | 25.00 | 8.80 | 7.25 | **0.00** | **0.00** | 41.05 |
-| 検索 | 25.00 | 8.70 | 6.75 | 8.00 | 30.00 | 78.45 |
-| DM一覧 | 25.00 | 8.90 | 15.75 | 6.50 | 13.20 | 69.35 |
-| DM詳細 | 25.00 | 9.00 | 10.25 | 4.00 | **0.00** | 48.25 |
-| 利用規約 | 25.00 | 8.60 | 9.50 | 8.30 | 4.50 | 55.90 |
+| ホーム | 19.50 | 7.40 | **0.00** | **0.00** | **0.00** | **26.90** |
+| 投稿詳細 | 25.00 | 8.90 | 7.00 | 9.40 | 27.60 | 77.90 |
+| 写真つき投稿詳細 | 24.75 | 8.90 | 0.25 | 8.50 | 29.70 | 72.10 |
+| 動画つき投稿詳細 | 23.50 | 8.90 | 7.00 | 7.40 | 18.30 | 65.10 |
+| 音声つき投稿詳細 | 25.00 | 8.90 | 7.25 | 8.10 | **0.00** | 49.25 |
+| 検索 | 25.00 | 8.60 | 7.00 | 8.90 | 30.00 | 79.50 |
+| DM一覧 | 25.00 | 8.80 | 15.75 | 6.50 | 9.00 | 65.05 |
+| DM詳細 | 25.00 | 9.00 | 9.00 | 3.10 | **0.00** | 46.10 |
+| 利用規約 | 25.00 | 8.90 | 7.75 | 8.50 | 3.30 | 53.45 |
 
-### ユーザーフローテスト (30.00 / 250)
+### ユーザーフローテスト (102.00 / 250)
 
 | テスト | INP | TBT | 合計 |
 |--------|-----|-----|------|
-| ユーザー登録→サインアウト→サインイン | 6.50 | 0.00 | 6.50 |
+| ユーザー登録→サインアウト→サインイン | 5.00 | 0.00 | 5.00 |
 | DM送信 | - | - | **計測不可** |
-| 検索→結果表示 | - | - | **計測不可** |
-| Crok AIチャット | 23.50 | 0.00 | 23.50 |
-| 投稿 | - | - | **計測不可** |
+| 検索→結果表示 | 25.00 | 22.00 | 47.00 |
+| Crok AIチャット | 25.00 | 0.00 | 25.00 |
+| 投稿 | 25.00 | 0.00 | 25.00 |
 
 ### ボトルネック分析
 
-| 問題 | 失点 | 根本原因推定 |
-|------|------|-------------|
-| 計測不可フロー ×3 | **~150点** | scoring-tool のセレクタ/完了条件とUI不一致 |
-| ホーム LCP/SI/TBT = 0 | **~70点** | 重い依存が同期チャンクに残留、APIレスポンス肥大 |
-| 音声投稿 TBT = 0 | **~30点** | SoundWaveSVG の AudioContext 処理? |
-| DM詳細 TBT = 0 | **~30点** | 原因不明、要調査 |
-| 全フロー TBT = 0 | **~125点** | redux-form + 重いバンドルによるメインスレッドブロック |
+| 問題 | 推定失点 | 根本原因 |
+|------|---------|----------|
+| TBT = 0 のページ多数 (ホーム,音声,DM詳細) | **~150点** | 重い依存(kuromoji/negaposi WASM, redux-form)がメインスレッドをブロック |
+| LCP が全体的に低い (0〜15.75) | **~120点** | 画像配信の最適化不足、プリロードなし |
+| DM送信フロー計測不可 | **~31点** | ローカルでは動くが提出環境でタイムアウト |
+| ユーザー登録 INP=5, TBT=0 | **~36点** | redux-form + AuthModal の初期化コスト |
+| ホーム CLS=19.5, LCP/SI/TBT=0 | **~27点** | CLS: 画像サイズ未指定、TBT: 重い同期チャンク |
 
 ---
 
-## Phase 3: 新プラン (v3)
+## Phase 3: 新プラン (v4)
 
-> 原則: 「壊れたフロー修復」→「最大の穴 (ホーム)」→「バンドル軽量化」→「LCP/表示最適化」の順。
-> docs/research の定石: **重い実行時処理をクライアントから追い出す**。
+> 原則: 「TBT 全ページ改善」→「LCP 全ページ改善」→「壊れたフロー安定化」→「追加最適化」
 
-### Step 1: 計測不可フロー修復 (期待 +100〜150点)
+### Step 2: TBT 全ページ改善 (期待 +150〜200点)
 
-scoring-tool のセレクタと完了待ち条件を突き合わせ、UIを完全一致させる。
+TBT は表示 30% + 操作 50% を占める最重要指標。現在 0pt のページが複数ある。
 
-#### S1-01: 検索→結果表示フロー修復
+#### S2-01: negaposi/kuromoji/BM25 サーバーサイド化
 
-**対象**: `SearchPage.tsx`, scoring-tool `calculate_search_post_flow_action.ts`
-- scoring-tool の待ちパターン (`/「アニメ/`) と見出しテキストの一致を検証
-- SearchPage のフォーム送信→URL更新→結果表示の流れを安定化
-- 計測: フル計測
+**対象**: `negaposi_analyzer.ts`, `bm25_search.ts`, `kuromoji_loader.ts`
+- サーバーに `/api/v1/sentiment` エンドポイント作成
+- クライアント側の kuromoji, negaposi-analyzer-ja, bayesian-bm25 依存を削除
+- kuromoji辞書 (17MB) のクライアント配信停止
+- 検索ページ, ホームの TBT に直結
+- 計測: ホーム計測 + フル計測
 
-#### S1-02: DM送信フロー修復
-
-**対象**: `NewDirectMessageModalPage.tsx`, scoring-tool の DM送信フロー
-- scoring-tool のセレクタ (ラベル・入力欄・送信ボタン・完了判定) を確認
-- 前回 30.50 → 計測不可に悪化。CoveredImage変更 or cache変更の副作用を調査
-- 計測: フル計測
-
-#### S1-03: 投稿フロー修復
-
-**対象**: `NewPostModalPage.tsx`, scoring-tool `calculate_post_flow_action.ts`
-- 画像投稿完了の確認条件 (`getByAltText(...)`) を確認
-- CoveredImage が `alt` prop を受け取るようになったが、新規投稿直後のAPIレスポンスに `alt` が含まれているか検証
-- 計測: フル計測
-
-### Step 2: ホーム TBT/SI/LCP = 0 の根本解決 (期待 +40〜70点)
-
-ホームは 27.40/100 で最悪ページ。LCP/SI/TBT が全て 0。
-
-#### S2-01: `react-syntax-highlighter` Light ビルド化 (旧 P3-02)
+#### S2-02: `react-syntax-highlighter` Light ビルド化
 
 **対象**: `CodeBlock.tsx`
 ```ts
@@ -122,46 +107,30 @@ import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import js from "react-syntax-highlighter/dist/esm/languages/hljs/javascript";
 SyntaxHighlighter.registerLanguage("javascript", js);
 ```
-全言語定義 (~1 MiB) → 必要な言語のみ。Crok以外のページのバンドルに混入していないか確認。
+全言語定義 (~1 MiB) → 必要な言語のみ。Crok 以外のページに混入していないか確認。
 計測: ホーム計測
 
-#### S2-02: Crok 専用依存の async chunk 分離確認 (旧 P3-03)
+#### S2-03: Crok 専用依存の async chunk 分離確認
 
 katex / react-markdown / react-syntax-highlighter / rehype-katex / remark-math / remark-gfm が
-Crok async チャンクに正しく入っているか確認。入っていなければ cacheGroups で分離:
-```js
-splitChunks: {
-  chunks: "all",
-  cacheGroups: {
-    crokVendor: {
-      test: /[\\/]node_modules[\\/](katex|react-markdown|react-syntax-highlighter|rehype-katex|remark-math|remark-gfm)/,
-      name: "crok-vendor",
-      chunks: "async",
-      priority: 20,
-    },
-  },
-}
-```
+Crok async チャンクに正しく入っているか確認。入っていなければ cacheGroups で分離。
 計測: ホーム計測
 
-#### S2-03: negaposi/kuromoji/BM25 サーバーサイド化 (旧 P3-08)
-
-- サーバーに `/api/v1/sentiment` エンドポイント作成
-- クライアント側の kuromoji, negaposi-analyzer-ja, bayesian-bm25 依存を削除
-- kuromoji辞書 (17MB) のクライアント配信停止
-- `bm25_search.ts`, `negaposi_analyzer.ts` をサーバーAPI呼び出しに置換
-- 計測: ホーム計測 (バンドル削減効果) + フル計測 (検索フロー影響)
-
-#### S2-04: `@mlc-ai/web-llm` の影響確認 (旧 P4-04)
+#### S2-04: `@mlc-ai/web-llm` の影響確認
 
 **対象**: `create_translator.ts` 経由のインポート
 - web-llm が同期チャンクに含まれていないか確認
 - 含まれていれば dynamic import 化 or Crok チャンクに隔離
 - 計測: ホーム計測
 
-### Step 3: redux-form 撤去 (期待 +20〜40点)
+#### S2-05: `standardized-audio-context` 削除検討
 
-#### S3-01: redux-form → React controlled form に置換 (旧 P3-06)
+音声つき投稿の TBT=0 に関与している可能性。Web Audio API に直接置換。
+計測: `--targetName "音声つき投稿詳細ページを開く"`
+
+### Step 3: redux-form 撤去 (期待 +30〜50点)
+
+#### S3-01: redux-form → React controlled form に置換
 
 **対象**:
 - `AuthModalPage.tsx` (サインイン/サインアップフォーム)
@@ -170,69 +139,73 @@ splitChunks: {
 - `store/index.ts` (redux-form reducer 除去)
 
 redux-form (~30KB gzipped) はメインバンドルに含まれ全ページの TBT に影響。
-ユーザー登録フローの TBT=0 / INP=6.5 はここが怪しい。
+ユーザー登録フローの INP=5 / TBT=0 はここが主因。
 バンドル削減と操作系フローの両方に効く。
 計測: フル計測
 
-### Step 4: CoveredImage 最終形 + 画像最適化 (期待 +20〜40点)
+### Step 4: LCP 全ページ改善 (期待 +80〜120点)
 
-#### S4-01: サーバーAPIから width/height/alt を返す (旧 P3-07 残り)
+#### S4-01: サーバーAPIから width/height/alt を返す
 
 - Image API レスポンスに `width`, `height` を追加
 - CoveredImage に明示的な `width`/`height` を設定
-- 写真つき投稿詳細の LCP=0.25 が低すぎる → 画像寸法確定で改善
-- 投稿フローの画像完了判定も安定化
+- CLS 改善 (ホーム 19.5→25) + LCP 改善
 - 計測: フル計測
 
-#### S4-02: 画像 `loading="lazy"` + 明示的サイズ (旧 P4-01)
+#### S4-02: 画像プリロード + loading="lazy"
 
-- ファーストビュー外の画像に `loading="lazy"` を追加
-- `<img width={w} height={h}>` で CLS 防止
-- ホームの SI 改善に寄与
+- ファーストビュー画像に `<link rel="preload">`
+- ファーストビュー外の画像に `loading="lazy"`
+- ホームの SI/LCP 改善に寄与
 - 計測: フル計測
 
-### Step 5: API レスポンス最適化 (期待 +20〜40点)
+#### S4-03: 適切な画像サイズ配信 (srcset/sizes)
 
-#### S5-01: 不要フィールド削除 + ネスト削減 (旧 P4-05)
+- サーバーサイドでリサイズ済み画像を生成
+- `<img srcset>` で適切なサイズを配信
+- LCP 改善（転送サイズ削減→速い描画）
+- 計測: フル計測
+
+### Step 5: DM送信フロー安定化 (期待 +31点)
+
+提出環境で「2通目のメッセージの送信完了を待機中にタイムアウト」。
+ローカルでは動く (37/50) が提出環境で失敗する。
+- ネットワーク遅延への耐性向上
+- redux-form 除去 (Step 3) 後に再検証
+- 計測: フル計測
+
+### Step 6: API レスポンス最適化 (期待 +20〜40点)
+
+#### S6-01: 不要フィールド削除 + ネスト削減
 
 **対象**: ホーム, 投稿詳細, DM一覧/詳細, 検索 API
 - above-the-fold に不要なフィールドを削除
-- docs/research: WSH2025優勝者は60MB→400KBで劇的改善
 - JSON パース時間短縮 → TBT 改善
 - 計測: フル計測
 
-#### S5-02: DB インデックス追加 (旧 P4-06)
+#### S6-02: DB インデックス追加
 
 - API レスポンスタイム短縮 → TTFB → LCP 改善
 - 計測: フル計測
 
-### Step 6: フォント最適化 (期待 +10〜20点)
+### Step 7: フォント最適化 (期待 +10〜20点)
 
-#### S6-01: OTF → WOFF2 + サブセット (旧 P3-01)
+#### S7-01: OTF → WOFF2 + サブセット
 
 - `public/fonts/ReiNoAreMincho-*.otf` (計12.7 MiB) → WOFF2 + サブセット
 - `/terms` ページで使用する文字のみに絞る
-- `index.css` の `@font-face` src を `.woff2` に更新
 - 目標: 12.7 MiB → ~200-500 KB
 - 利用規約ページの LCP/SI に効く
 - 計測: `--targetName "利用規約"` + フル計測
 
-### Step 7: 追加最適化 (時間に余裕がある場合)
+### Step 8: 追加最適化 (時間に余裕がある場合)
 
-#### S7-01: `<link rel="preload">` — CSS, クリティカルフォント (旧 P4-02)
-#### S7-02: `splitChunks.maxSize` で並列ダウンロード最適化 (旧 P4-03)
-#### S7-03: `standardized-audio-context` 削除 (旧 P3-04)
-#### S7-04: SSR 導入 (旧 P4-07)
+#### S8-01: `<link rel="preload">` — CSS, クリティカルフォント
+#### S8-02: `splitChunks.maxSize` で並列ダウンロード最適化
+#### S8-03: SSR 導入
 
 > **SSR は docs/research でもハイリスク。** WSH2025 では16人中15人がハイドレーション崩れで失格。
 > 重依存除去と API 軽量化が終わるまで触らない。
-
----
-
-## 後回し / 保留
-
-- **キャッシュヘッダー再調整**: ホームで悪化した実績あり (improvement-log #23)。当面維持。
-- **SSR**: ハイリスク。Phase 3 完了後に時間があれば検討。
 
 ---
 
@@ -240,14 +213,14 @@ redux-form (~30KB gzipped) はメインバンドルに含まれ全ページの T
 
 | Step | 期待獲得 | 累計予想 |
 |------|---------|---------|
-| 現状 | - | 555.95 |
-| Step 1 (フロー修復) | +100〜150 | ~680 |
-| Step 2 (ホーム改善) | +40〜70 | ~730 |
-| Step 3 (redux-form) | +20〜40 | ~760 |
-| Step 4 (画像最適化) | +20〜40 | ~790 |
-| Step 5 (API最適化) | +20〜40 | ~820 |
-| Step 6 (フォント) | +10〜20 | ~835 |
-| Step 7 (追加最適化) | +20〜40 | ~860 |
+| 現状 | - | 637.35 |
+| Step 2 (TBT改善) | +150〜200 | ~810 |
+| Step 3 (redux-form) | +30〜50 | ~850 |
+| Step 4 (LCP改善) | +80〜120 | ~940 |
+| Step 5 (DM安定化) | +31 | ~970 |
+| Step 6 (API最適化) | +20〜40 | ~1000 |
+| Step 7 (フォント) | +10〜20 | ~1015 |
+| Step 8 (追加最適化) | +20〜40 | ~1040 |
 
 ---
 
@@ -277,11 +250,11 @@ redux-form (~30KB gzipped) はメインバンドルに含まれ全ページの T
 - [x] P2-03: 即時レンダリング (`window.load` 待ち除去)
 - [x] FCP修正: `publicPath: "/"` + `inject: "head"` + `scriptLoading: "defer"`
 
-### Phase 2+ (個別改善)
-- [x] P3-05: `AuthModalContainer` lazy load 化
-- [x] #1: CoveredImage blob URL 廃止 → 直接 `<img src>` 化
-- [x] #2: InfiniteScroll `2^18` ループ除去 + passive 化
-- [x] #3: 検索フロー見出し文言修正
+### Step 1 (フロー修復)
+- [x] S1-01: 検索フロー修復 (aria-label一致 + useSearchParams切替 + ReDoS修正)
+- [x] S1-02: DM送信フロー修復 (楽観的更新 + loadConversation非同期化)
+- [x] S1-03: 投稿フロー修復 (alt抽出 + ffmpeg cropフィルタ修正 + エラーハンドリング)
+- [x] S1-04: AuthModal型修正 (HttpError クラス + 構造化エラー保持)
 
 ### 不採用 / キャンセル済み
 - [x] フォント最適化 (利用規約用分離案) → ホーム改善なし → CANCEL
@@ -293,7 +266,7 @@ redux-form (~30KB gzipped) はメインバンドルに含まれ全ページの T
 
 | # | チェック項目 | コマンド/方法 |
 |---|-------------|---------------|
-| 1 | VRT テスト | `cd application && pnpm run test` |
+| 1 | VRT テスト | `cd application && E2E_WORKERS=1 pnpm --filter @web-speed-hackathon-2026/e2e test` |
 | 2 | 手動テスト主要項目 | `docs/test_cases.md` を目視確認 |
 | 3 | 初期化 API | `curl -X POST http://localhost:3000/api/v1/initialize` |
 | 4 | Crok SSE | ブラウザで確認 |

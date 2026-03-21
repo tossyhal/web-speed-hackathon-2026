@@ -47,10 +47,7 @@ const NewPostModalContainer = lazy(async () => {
   const mod = await import("@web-speed-hackathon-2026/client/src/containers/NewPostModalContainer");
   return { default: mod.NewPostModalContainer };
 });
-const AuthModalContainer = lazy(async () => {
-  const mod = await import("@web-speed-hackathon-2026/client/src/containers/AuthModalContainer");
-  return { default: mod.AuthModalContainer };
-});
+import { AuthModalContainer } from "@web-speed-hackathon-2026/client/src/containers/AuthModalContainer";
 
 export const AppContainer = () => {
   const { pathname } = useLocation();
@@ -123,9 +120,7 @@ export const AppContainer = () => {
         </Suspense>
       </AppPage>
 
-      <Suspense fallback={null}>
-        <AuthModalContainer id={authModalId} onUpdateActiveUser={setActiveUser} />
-      </Suspense>
+      <AuthModalContainer id={authModalId} onUpdateActiveUser={setActiveUser} />
       <Suspense fallback={null}>
         <NewPostModalContainer id={newPostModalId} />
       </Suspense>
